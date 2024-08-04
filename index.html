@@ -1,1 +1,68 @@
-<h1>hello world</h1>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tiffanify for Даня М</title>
+    <style>
+        #videoElement {
+            width: 100%;
+            max-width: 600px;
+        }
+        canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+        }
+    </style>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/coco-ssd"></script>
+</head>
+<body>
+    <video autoplay="true" id="videoElement"></video>
+    <canvas id="canvasElement"></canvas>
+    <script>
+        const video = document.querySelector("#videoElement");
+        const canvas = document.querySelector("#canvasElement");
+        const context = canvas.getContext('2d');
+
+        // Доступ к камере
+        navigator.mediaDevices.getUserMedia({ video: true })
+            .then(function (stream) {
+                video.srcObject = stream;
+            })
+            .catch(function (error) {
+                console.log("Что-то пошло не так!", error);
+            });
+
+        video.addEventListener('loadeddata', async () => {
+            const model = await cocoSsd.load();
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+
+            async function detectFrame() {
+                const predictions = await model.detect(video);
+                context.drawImage(video, 0, 0, canvas.width, canvas.height);
+                predictions.forEach(prediction => {
+                    if (prediction.score > 0.5) {
+                        context.beginPath();
+                        context.rect(...prediction.bbox);
+                        context.lineWidth = 2;
+                        context.strokeStyle = 'red';
+                        context.fillStyle = 'rgba(10, 186, 181, 0.5)';
+                        context.fill();
+                        context.stroke();
+                        context.closePath();
+                    }
+                });
+                requestAnimationFrame(detectFrame);
+            }
+
+            detectFrame();
+        });
+
+        // Telegram WebApp SDK
+        Telegram.WebApp.ready();
+    </script>
+</body>
+</html>
